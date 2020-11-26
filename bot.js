@@ -1,46 +1,42 @@
-const TelegramBot = require("node-telegram-bot-api")
-const request = require('request')
-const cheerio = require('cheerio')
+require('dotenv').config()
 
-const token = "1318632592:AAFdYdYwxGK_f-FmhR7dLJoqY4aIE2Hlyx4"
+const   TelegramBot = require('node-telegram-bot-api'),
+        request     = require('request'),
+        cheerio     = require('cheerio'),
+        token       = process.env.TELEGRAM_TOKEN,
+        bot         = new TelegramBot(token, { polling: true });
 
-const bot = new TelegramBot( token, { polling: true } )
+bot.onText(/\/find (.+)/, (msg, match) => {
+  const resp = match[1];
+  const URL_PACKAGE = `https://www.linkcorreios.com.br/?id=${resp}`;
 
-const chatId = "298493513"
+  bot.sendMessage(msg.chat.id,'🔍 Aguarde ... ')
+  
+      request(URL_PACKAGE, (err, res, body) => {
+        if (err) {
 
-const URL = "https://www.linkcorreios.com.br/?id=BR041995267BR"
+          console.log(err);
 
-bot.getChat(chatId).then(function (msg) {
+        } else {
 
-    bot.on('message', (msg) => {
-        const txtMsg = msg.text.toString().toLowerCase()
-        if (txtMsg == "email") {
+            const crawler = cheerio.load(body);
 
-        bot.sendMessage(msg.chat.id,"Você escolheu a opção email!");
-        } 
-        if(txtMsg == "find"){
-            bot.sendMessage(msg.chat.id,"Digite o código do pacote!");
-            bot.on('message', (package) => {
-                const cod = package.text.toString().toLowerCase()
-                const URL_PACKAGE = `https://www.linkcorreios.com.br/?id=${cod}`
-                request(URL_PACKAGE,(err,res,body) => {
-                    if(err){
-                        console.log(err)
-                    }else{
-                        const craweler = cheerio.load(body)
-                        craweler('ul.linha_status:nth-child(2)').each(function(index){
-                            var status = craweler(this).find('li:nth-child(1)').text();
-                            var data = craweler(this).find('li:nth-child(2)').text();
-                            var local = craweler(this).find('li:nth-child(3)').text();
-                            bot.sendMessage(msg.chat.id,`${'\n' + status + '\n' + data + '\n' + local}`)
-                            console.log("✔ Response Send!");
-                        });      
-                    }
-                })
-            })
-            
+            const not_found = crawler('div.col-lg-8 > p').text().split(':')
+
+            if(not_found[0] == "O rastreamento não está disponível no momento"){
+
+                bot.sendMessage(msg.chat.id,`⛔ O código ${resp} é invalido!`)
+
+            }else{
+                crawler('ul.linha_status').each(function(index){
+                    var status = crawler(this).find('li:nth-child(1)').text();
+                    var data = crawler(this).find('li:nth-child(2)').text();
+                    var local = crawler(this).find('li:nth-child(3)').text();
+                    bot.sendMessage(msg.chat.id, `📦 Pacote: ${'\n🔍 ' + status + '\n⌚ ' + data + '\n🌏 ' + local}`)
+
+                });  
+            }
+          }
         }
-        
-     })
-
+      );
 });
