@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start":"node bot.js"
+    "start": "nodemon bot.js"
   },
   "dependencies": {
     "axios": "^0.21.0",
@@ -12,5 +12,8 @@
     "dotenv": "^8.2.0",
     "node-telegram-bot-api": "^0.50.0",
     "request": "^2.88.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.6"
   }
 }

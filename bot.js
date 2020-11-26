@@ -10,33 +10,52 @@ bot.onText(/\/find (.+)/, (msg, match) => {
   const resp = match[1];
   const URL_PACKAGE = `https://www.linkcorreios.com.br/?id=${resp}`;
 
-  bot.sendMessage(msg.chat.id,'🔍 Aguarde ... ')
-  
-      request(URL_PACKAGE, (err, res, body) => {
-        if (err) {
+  bot.sendMessage(msg.chat.id, '🔍 Aguarde ... ');
 
-          console.log(err);
+  request(URL_PACKAGE, (err, res, body) => {
+    if (err) {
+      console.log(err);
+      bot.sendMessage(msg.chat.id, `⛔ O Serviço esta indisponível no momento!`);
+    } else {
+      const crawler = cheerio.load(body);
 
-        } else {
+      const not_found = crawler('div.col-lg-8 > p').text().split(':');
 
-            const crawler = cheerio.load(body);
+      if (not_found[0] == 'O rastreamento não está disponível no momento') {
 
-            const not_found = crawler('div.col-lg-8 > p').text().split(':')
+        bot.sendMessage(msg.chat.id, `⛔ O código ${resp} é invalido!`);
 
-            if(not_found[0] == "O rastreamento não está disponível no momento"){
+      } else {
 
-                bot.sendMessage(msg.chat.id,`⛔ O código ${resp} é invalido!`)
+        let data = '';
 
-            }else{
-                crawler('ul.linha_status').each(function(index){
-                    var status = crawler(this).find('li:nth-child(1)').text();
-                    var data = crawler(this).find('li:nth-child(2)').text();
-                    var local = crawler(this).find('li:nth-child(3)').text();
-                    bot.sendMessage(msg.chat.id, `📦 Pacote: ${'\n🔍 ' + status + '\n⌚ ' + data + '\n🌏 ' + local}`)
+        crawler('ul.linha_status').each(function () {
 
-                });  
-            }
-          }
-        }
-      );
+          const icon = {
+            Status: '🔍',
+            Data: '⌚',
+            Local: '🌏',
+          };
+
+          crawler(this)
+            .find('li')
+            .each(function () {
+
+              let crawledText = crawler(this).text();
+
+              let splittedCrawledText = crawledText.split(':');
+
+              crawledText = `${icon[splittedCrawledText[0].trim()] + crawledText}`;
+
+              data = `${data + crawledText}\n`;
+            });
+
+          data = `${data}\n`;
+        });
+
+        bot.sendMessage(msg.chat.id, data);
+
+      }
+    }
+  });
 });
