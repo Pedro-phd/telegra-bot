@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "nodemon bot.js"
+    "start": "nodemon bot.js && clear"
   },
   "dependencies": {
     "axios": "^0.21.0",

@@ -1,5 +1,8 @@
 require('dotenv').config()
 
+const Store = require('./functions/store')
+const avalibleItems = require('./functions/availableItems')
+
 const   TelegramBot = require('node-telegram-bot-api'),
         request     = require('request'),
         cheerio     = require('cheerio'),
@@ -59,3 +62,35 @@ bot.onText(/\/find (.+)/, (msg, match) => {
     }
   });
 });
+
+bot.onText(/\/store (.+)/, async (msg, match) => {
+  const resp = match[1];
+  const items = await Store(resp)
+  items.data.map((e)=>{
+    if (e.enabled){
+      bot.sendMessage(msg.chat.id,`📋 Nome: ${e.name} \n💲 Preço: ${e.cost} points`)
+    }
+  })
+})
+
+bot.onText(/\/avalibleItems (.+)/, async (msg, match) => {
+  const infos = match[1].split(' ')
+  const channel = infos[0].trim();
+  const username = infos[1].trim();
+  const data = await avalibleItems(channel,username)
+
+  if(data[0] != false){
+
+  //  console.log(data)
+
+    await data[1].map((i)=>{
+      if(i.cost <= data[0] && i.enabled){
+        bot.sendMessage(msg.chat.id,`📋 Nome: ${i.name} \n💲 Preço: ${i.cost} points`)
+      }
+    }) 
+
+  }else{
+    bot.sendMessage(msg.chat.id,`⛔ Não foi possivel completar a ação! `)
+  }
+ 
+})
